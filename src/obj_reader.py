@@ -125,13 +125,13 @@ class ObjectReader(object):
             verts = []
 
             if flip:
-                verts.append( vert_list[i    ] )
-                verts.append( vert_list[i - 1] ) 
                 verts.append( vert_list[i - 2] )
-            else:
                 verts.append( vert_list[i    ] )
-                verts.append( vert_list[i - 2] ) 
                 verts.append( vert_list[i - 1] )
+            else:
+                verts.append( vert_list[i - 2] )
+                verts.append( vert_list[i - 1] )
+                verts.append( vert_list[i    ] )
 
             flip = not flip
             face_list.append(verts)
