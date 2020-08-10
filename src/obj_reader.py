@@ -114,7 +114,7 @@ class ObjectReader(object):
     # End Def
 
     def generate_faces(self, vert_list):
-        flip = True
+        flip = False
         
         face_list = []
         
@@ -123,15 +123,6 @@ class ObjectReader(object):
                 continue
             
             verts = []
-            
-            #if flip:
-            #    verts.append( find_vertex(vert_list[i    ]) )
-            #    verts.append( find_vertex(vert_list[i - 1]) ) 
-            #    verts.append( find_vertex(vert_list[i - 2]) )
-            #else:
-            #    verts.append( find_vertex(vert_list[i    ]) )
-            #    verts.append( find_vertex(vert_list[i - 2]) ) 
-            #    verts.append( find_vertex(vert_list[i - 1]) )
 
             if flip:
                 verts.append( vert_list[i    ] )
