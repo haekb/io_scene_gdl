@@ -1,0 +1,67 @@
+//------------------------------------------------
+//--- 010 Editor v10.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+struct Vector3 {
+    float x,y,z;
+};
+
+struct WorldHeader {
+    int nwobjs;
+    int wobjoffset;
+    int nctris;
+    int ctrioffset;
+    int ngridentries;
+    int gridentryoffset;
+    int ngridlistvals;
+    int gridlistoffset;
+    int gridrowoffset;
+    float worldmin[3];
+    float worldmax[3];
+    float gridsize;
+    int gridnumx;
+    int gridnumz;
+    int niteminfos;
+    int iteminfooffset;
+    int niteminsts;
+    int iteminstoffset;
+    int nlocators;
+    int locatoroffset;
+    int worldformat;
+    int animheaderoffset;
+    int nworldanims;    
+    int worldpsys; 
+    int worldpsysoffset;
+    
+};
+
+struct WorldObject {
+    char desc[16];
+    int flags;
+    short triggertype;
+    char triggerstate;
+    char ptriggerstate;
+    int parent; // pointer
+    Vector3 pos;
+    int nodeptr;
+    short nextidx;
+    short childidx;
+    float rad;
+    char checked;
+    char nocol;
+    short nctris;
+    int ctriidx;
+};
+
+WorldHeader header;
+
+FSeek(header.wobjoffset);
+WorldObject objects[header.nwobjs];
