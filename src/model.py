@@ -1,6 +1,6 @@
 from .io import unpack
 from mathutils import Vector, Quaternion, Matrix
-
+from .utils import align
 
 '''
 Every console port is based off the PS2 version.
@@ -131,28 +131,72 @@ class Model(object):
 
         # Let's load some data!
 
-        for obj in self._objects:
+        for obj_index, obj in enumerate(self._objects):
+            print("------------------------------------------------------")
+            print("Reading Object %s" % self._object_defs[obj_index]._name)
             f.seek(obj._data_pointer, 0)
 
             # VU unpack command
             f.seek(2 * 4, 1)
 
-            base_signal = Signal()
-            base_signal.read(f)
-            # Unknown data
-            f.seek(4 * 4, 1)
+            while True: 
+                align(4, f)
+                print("Reading Signal at %d" % f.tell())
+                signal = Signal()
+                signal.read(f)
+                
+                print("Signal mode: %s" % signal.get_mode_string())
+                if signal.is_header():
+                    f.seek(4 * 4, 1)
+                elif signal.is_vertex():
+                    obj_vertices = []
 
-            vertex_signal = Signal()
-            vertex_signal.read(f)
+                    for _ in range(signal._data_count):
+                        vertex = Vertex()
+                        vertex.read(f, signal._mode)
+                        obj_vertices.append(vertex)
+                        
+                    self._vertices.append(obj_vertices)
+                elif signal.is_uv():
 
-            obj_vertices = []
+                    # For unknown reasons we need to even-ify data count for "uv" items
+                    if signal._data_count % 2 != 0:
+                        signal._data_count += 2 - (signal._data_count % 2)
 
-            for _ in range(obj._vertex_count):
-                vertex = Vertex()
-                vertex.read(f, vertex_signal._mode)
-                obj_vertices.append(vertex)
-            
-            self._vertices.append(obj_vertices)
+                    f.seek( signal._data_count * 4, 1 )
+
+                    # Also ignore a "bonus" uv
+                    f.seek( 4 , 1)
+
+                    # Should be a VU command after UV
+                    vu_command = VUCommand()
+                    vu_command.read(f)
+                    print("Found VU Command: %s" % vu_command.get_command_string())
+                else:
+                    print("Unknown signal! Probably misaligned read..breaking!")
+                    break
+                # End If
+
+                # Only go up to 3 signals (zero indexed)
+                #if signal._index >= 2:
+                #    vu_command = VUCommand()
+                #    vu_command.read(f)
+                #
+                #    print("Found VU Command: %s" % vu_command.get_command_string())
+                #    #break
+                # End If
+
+                #vu_command = VUCommand()
+                #vu_command.read(f)
+                #print("Found VU Command: %s" % vu_command.get_command_string())
+
+                # Oh...we're the last one? Break for now
+                if len(self._objects) == (obj_index + 1):
+                    break
+
+                # Look ahead, and see if we're past the next object!
+                if f.tell() + 12 > (self._objects[obj_index+1]._data_pointer):
+                    break
 
         end = True
     # End Def
@@ -317,13 +361,47 @@ class Vertex(object):
 
 class Signal(object):
     def __init__(self):
-        self._count = 0
+        self._index = 0
         self._constant = 0
         self._data_count = 0
         self._mode = 0
     
     def read(self, f):
-        self._count = unpack('B', f)[0]
+        self._index = unpack('B', f)[0]
         self._constant = unpack('B', f)[0]
         self._data_count = unpack('B', f)[0]
         self._mode = unpack('B', f)[0]
+
+    def get_mode_string(self):
+        if self.is_header():
+            return "Header"
+        elif self.is_vertex():
+            return "Vertex"
+        elif self.is_uv():
+            return "UV"
+        return "Unknown"
+
+    def is_header(self):
+        return self._mode in [SIGNAL_MODE_HEADER]
+
+    def is_vertex(self):
+        return self._mode in [SIGNAL_MODE_CHAR, SIGNAL_MODE_SHORT]
+    
+    def is_uv(self):
+        return self._mode in [SIGNAL_MODE_UV]
+
+# Good reference: https://github.com/ps2dev/ps2sdk/blob/8b7579979db87ace4b0aa5693a8a560d15224a96/common/include/vif_codes.h
+class VUCommand(object):
+    def __init__(self):
+        self._command = 0
+
+    def read(self, f):
+        f.seek(3, 1)
+        self._command = unpack('B', f)[0]
+
+    def get_command_string(self):
+        if self._command == 0x14:
+            return "MSCAL (0x14)"
+        elif self._command == 0x17:
+            return "MSCNT (0x17)"
+        return "Unknown %d" % self._command

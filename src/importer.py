@@ -24,6 +24,7 @@ class ImportOperatorObject(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
         layout = self.layout
 
     def execute(self, context):
+        print("Loading file %s" % self.filepath)
         # Load the model
         model = ObjectReader().read(self.filepath)
 
