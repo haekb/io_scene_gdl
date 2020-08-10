@@ -134,10 +134,9 @@ class Model(object):
         for obj in self._objects:
             f.seek(obj._data_pointer, 0)
 
-            print("Current: %d" % f.tell())
             # VU unpack command
             f.seek(2 * 4, 1)
-            print("Current: %d" % f.tell())
+
             base_signal = Signal()
             base_signal.read(f)
             # Unknown data
@@ -146,10 +145,14 @@ class Model(object):
             vertex_signal = Signal()
             vertex_signal.read(f)
 
+            obj_vertices = []
+
             for _ in range(obj._vertex_count):
                 vertex = Vertex()
                 vertex.read(f, vertex_signal._mode)
-                self._vertices.append(vertex)
+                obj_vertices.append(vertex)
+            
+            self._vertices.append(obj_vertices)
 
         end = True
     # End Def

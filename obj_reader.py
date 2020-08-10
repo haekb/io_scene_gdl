@@ -22,67 +22,133 @@ class ObjectReader(object):
         Data = bpy.data
         Ops = bpy.ops
 
-        collection = Data.collections.new("vert test")
+        collection = Data.collections.new("Objects.ps2")
         # Add our collection to the scene
         Context.scene.collection.children.link(collection)
 
         material = Data.materials.new("test")
 
-        ''' Create the object and mesh. '''
-        mesh_name = "test"
-
-        mesh = Data.meshes.new("test")
-
-        mesh_object = Data.objects.new(mesh_name, mesh)
-
-        ''' Add materials to mesh. '''
-        #for material in materials:
-        ''' Create UV map. '''
-        '''
-        uv_texture = mesh.uv_textures.new()
-        mesh.materials.append(material)
-        material.texture_slots[0].uv_layer = uv_texture.name
-        '''
-        uv_texture = mesh.uv_layers.new()
-        mesh.materials.append(material)
-        # material.uv_layers[0].name = uv_texture.name
-
-        # TODO: these need to be reset for each mesh
-        vertex_offset = 0
-        face_offset = 0
 
         ''' Populate the actual mesh data. '''
-        bm = bmesh.new()
-        bm.from_mesh(mesh)
+        for i in range(model._object_count):
+            object_def = model._object_defs[i]
+            ''' Create the object and mesh. '''
+            mesh_name = object_def._name
 
-        for vertex in model._vertices:#unique_vert_list:
-    
-            new_vertex = vertex._vector
-            
-            vert_tuple = ()
+            mesh = Data.meshes.new(mesh_name)
+
+            mesh_object = Data.objects.new(mesh_name, mesh)
+
+            ''' Add materials to mesh. '''
+            #for material in materials:
+            ''' Create UV map. '''
+            '''
+            uv_texture = mesh.uv_textures.new()
+            mesh.materials.append(material)
+            material.texture_slots[0].uv_layer = uv_texture.name
+            '''
+            uv_texture = mesh.uv_layers.new()
+            mesh.materials.append(material)
+
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+
+            vertex_list = []
+
+            for vertex in model._vertices[i]:
+        
+                new_vertex = vertex._vector
                 
-            # Scale the model down
-            for vert in new_vertex:
-                #vert *= 0.01
-                vert_tuple += (vert,)
+                vert_tuple = ()
+                    
+                # Scale the model down
+                for vert in new_vertex:
+                    if object_def._bnd_rad != 0.0:
+                        vert *= (1.0/object_def._bnd_rad)
+                        #vert *= 0.05
+                    #vert *= 0.1
+                    vert_tuple += (vert,)
+                    
+                #print(vert_tuple)
                 
-            #print(vert_tuple)
+                vertex_list.append(bm.verts.new(vert_tuple))
+            # End For
+
+            faces = self.generate_faces(vertex_list)
+
+            for vertex_list in faces:
+                # Uncomment to skip face generation
+                #continue
+                # ---------------------------------
+
+                #print("Verts", vertex_list)
+                #face = [bm.verts[vertex_offset + vertex.vertex_index] for vertex in face.vertices]
+
+                try:
+                    bmface = bm.faces.new(vertex_list)
+                except ValueError:
+                    '''
+                    This face is a duplicate of another face, which is disallowed by Blender.
+                    Mark this face for deletion after iteration.
+                    '''
+                    print("Dupe found!")
+                    #duplicate_face_indices.append(face_index)
+                    continue
+                '''
+                Assign the material index of face based on the piece's material index.
+                '''
+                bmface.material_index = 0
+                bmface.smooth = True
+            # End For
+
+            bm.faces.ensure_lookup_table()
+
+            bm.to_mesh(mesh)
+
+            glob_uv_index = 0
+
+            uv_texture = mesh.uv_layers[0]
+
+            mesh.validate(clean_customdata=False)
+            mesh.update(calc_edges=True)
+
+            # add it to our collection c:
+            collection.objects.link(mesh_object)
+        # End For
+    # End Def
+
+    def generate_faces(self, vert_list):
+        flip = True
+        
+        face_list = []
+        
+        for i in range( len(vert_list) ):
+            if i < 2:
+                continue
             
-            new_vertex = vert_tuple#tuple([i * 0.01 for i in vertex])
-            bm.verts.new(new_vertex)
-    
+            verts = []
+            
+            #if flip:
+            #    verts.append( find_vertex(vert_list[i    ]) )
+            #    verts.append( find_vertex(vert_list[i - 1]) ) 
+            #    verts.append( find_vertex(vert_list[i - 2]) )
+            #else:
+            #    verts.append( find_vertex(vert_list[i    ]) )
+            #    verts.append( find_vertex(vert_list[i - 2]) ) 
+            #    verts.append( find_vertex(vert_list[i - 1]) )
 
-        bm.faces.ensure_lookup_table()
+            if flip:
+                verts.append( vert_list[i    ] )
+                verts.append( vert_list[i - 1] ) 
+                verts.append( vert_list[i - 2] )
+            else:
+                verts.append( vert_list[i    ] )
+                verts.append( vert_list[i - 2] ) 
+                verts.append( vert_list[i - 1] )
 
-        bm.to_mesh(mesh)
+            flip = not flip
+            face_list.append(verts)
 
-        glob_uv_index = 0
-
-        uv_texture = mesh.uv_layers[0]
-
-        mesh.validate(clean_customdata=False)
-        mesh.update(calc_edges=True)
-
-        # add it to our collection c:
-        collection.objects.link(mesh_object)
-
+        
+        return face_list
+    # End
