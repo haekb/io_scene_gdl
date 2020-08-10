@@ -1,0 +1,753 @@
+//------------------------------------------------
+//--- 010 Editor v10.0 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+enum ROMTEX_FLAGS {
+    ROMTEX_FLAG_HALFRES = 1,
+    ROMTEX_FLAG_SEEALPHA = 2,
+    ROMTEX_FLAG_CLAMPS = 4,
+    ROMTEX_FLAG_CLAMPT = 8,
+    ROMTEX_FLAG_ANIM = 16,
+    ROMTEX_FLAG_EXTERN = 32,
+    ROMTEX_FLAG_TEX_SHIFT = 64,
+    ROMTEX_FLAG_HASALPHA = 128,
+    ROMTEX_FLAG_INVALID = 256,
+    ROMTEX_FLAG_DUALTEX = 512,
+};
+
+enum ROMTEX_FMT
+{
+    ROMTEX_FMT_ABGR_1555 = 0,
+    ROMTEX_FMT__BGR__555 = 1,
+    ROMTEX_FMT_ABGR_8888 = 2,
+    ROMTEX_FMT__BGR__888 = 3,
+    ROMTEX_FMT_IDX_4_ABGR_1555 = 16,
+    ROMTEX_FMT_IDX_4__BGR__555 = 17,
+    ROMTEX_FMT_IDX_4_ABGR_8888 = 34,
+    ROMTEX_FMT_IDX_4__BGR__888 = 35,
+    ROMTEX_FMT_IDX_8_ABGR_1555 = 48,
+    ROMTEX_FMT_IDX_8__BGR__555 = 49,
+    ROMTEX_FMT_IDXA_88 = 56,
+    ROMTEX_FMT_IDX_8_ABGR_8888 = 66,
+    ROMTEX_FMT_IDX_8__BGR__888 = 67,
+    ROMTEX_FMT_IDX_8_A_8 = 130,
+    ROMTEX_FMT_IDX_8_I_8 = 131,
+    ROMTEX_FMT_IDX_4_A_4 = 146,
+    ROMTEX_FMT_IDX_4_I_4 = 147,
+    ROMTEX_FMT_END = 255,
+};
+
+enum OBJ_FLAGS
+{
+    OBJ_ALPHA = 1,
+    OBJ_VNORMS = 2,
+    OBJ_VCOLORS = 4,
+    OBJ_MESH = 8,
+    OBJ_TEX2 = 16,
+    OBJ_LMAP = 32,
+    OBJ_SHARP = 64,
+    OBJ_BLUR = 128,
+    OBJ_CHROME = 256,
+    OBJ_ERROR = 512,
+    OBJ_SORTA = 1024,
+    OBJ_SORT = 2048,
+    OBJ_FMT_MASK = 61440,
+    OBJ_FMT_BASIC = 0,
+    OBJ_LIT_MASK = 983040,
+    OBJ_NON_LIT = 0,
+    OBJ_PRE_LIT = 65536,
+    OBJ_LMAP_LIT = 131072,
+    OBJ_NORM_LIT = 196608,
+    OBJ_DYN_LIGHT = 1048576,
+    OBJ_END = 1048577,
+};
+
+
+struct wadObj {
+    //int unk[2];
+    //int one;
+    string name;
+    string meta;
+    string meta2;
+    string meta3;
+    string meta4;
+    char dataSection[3];
+    int type;
+    int price;
+    int amount;
+    
+};
+
+struct shop_item
+{
+    char blit[32];
+    char desc[32];
+    float scale;
+    int type;
+    int price;
+    int amount;
+};
+
+
+struct objanim
+{
+    char mbdesc[32];
+    int mbidx;
+    short nframes;
+    short startframe;
+};
+
+struct ignore {
+    char filler[48];
+};
+
+typedef uint pVoid;
+typedef uint pInt;
+typedef uint pUChar;
+typedef uint pUint;
+typedef ushort pUshort;
+
+// 0x2e04 - 14 array - unsigned int 
+
+struct modelheader
+{
+    char DirName[32];
+    char ModelName[32];
+    pVoid pVersion;
+    uint romobj_cnt;
+    uint romtex_cnt;
+    uint objdef_cnt;
+    uint texdef_cnt;
+    pInt romobjs;
+    pInt romtexs;
+    pInt objdefs;
+    pInt texdefs;
+    pInt subobjs;
+    uint geom;
+    uint obj_end;
+    uint tex_start;
+    uint tex_end;
+    pUChar texbits;
+    ushort lmtex_first;
+    ushort lmtex_num;
+    pUint texinfo;
+    int Unused;
+};
+
+struct ROMOBJECT
+{
+    float InvRad;
+    float BndRad;
+    uint Flags;
+    int SubObjCnt;
+    ushort SubObj0_QWC;
+    ushort SubObj0_TexIdx;
+    ushort SubObj0_LMIdx;
+    short SubObj0_LodK;
+    pInt SubObjPtr;
+    pUint DataPtr;
+    int VertCount;
+    int TriCount;
+    int IDnum;
+    pInt ObjDef;
+    int Unused[4];
+};
+
+struct ROMTEX
+{
+    uchar Format;
+    uchar LodK;
+    uchar MipMaps;
+    uchar Width64;
+    ushort WidthLog2;
+    ushort HeightLog2;
+    ushort Flags;
+    ushort TexPalIndex;
+    pUint TexBase;
+    ushort TexPalCnt;
+    ushort TexShiftIdx;
+    ushort NumFrames;
+    ushort Width;
+    ushort Height;
+    ushort Size;
+    pInt TexDef;
+    uint TEX0[2];
+    uint64 MIPTBP1;
+    uint64 MIPTBP2;
+    pInt vram_addr;
+    pInt clut_addr;
+};
+
+// objregvals -- todo see that
+
+struct SUBOBJECT
+{
+    ushort QWC;
+    ushort TexIdx;
+    ushort LMIdx;
+    short LodK;
+};
+
+struct OBJDEF
+{
+    char name[16];
+    float bndrad;
+    short index;
+    short nframes;
+};
+
+struct TEXDEF
+{
+    //char Name[];
+    char Name[30];
+    short Index;
+    ushort Width;
+    ushort Height;
+};
+
+struct Vector4
+{
+    float x,y,z,w;
+};
+
+// 0x1315 = float[4]?
+struct PolyVert
+{
+    Vector4 Pos;
+    ushort x;
+    ushort y;
+    uint z;
+    ushort s;
+    ushort t;
+    ushort used;
+    ushort dummy;
+};
+
+struct polyheader
+{
+    pUint polys;
+    pUint vertlist;
+    int maxverts;
+    int numverts;
+};
+
+struct modelinfo
+{
+    pUint objects;
+    pUint textures;
+    pUint lightmaps;
+    pUint state;
+    pUint done;
+    pUint counter;
+};
+
+struct ObjectData
+{
+    float unk[24];
+
+};
+
+/*
+0x613c : Length = 350, Leaf = 0x1203 LF_FIELDLIST
+	list[0] = LF_MEMBER, public, type = 0x1316, offset = 0
+		member name = 'mat'
+	list[1] = LF_MEMBER, public, type = 0x1315, offset = 64
+		member name = 'scale'
+	list[2] = LF_MEMBER, public, type = T_USHORT(0021), offset = 80
+		member name = 'id'
+	list[3] = LF_MEMBER, public, type = T_RCHAR(0070), offset = 82
+		member name = 'type'
+	list[4] = LF_MEMBER, public, type = T_UCHAR(0020), offset = 83
+		member name = 'alpha'
+	list[5] = LF_MEMBER, public, type = T_REAL32(0040), offset = 84
+		member name = 'zsort_add'
+	list[6] = LF_MEMBER, public, type = T_UINT4(0075), offset = 88
+		member name = 'texaltidx'
+	list[7] = LF_MEMBER, public, type = T_SHORT(0011), offset = 92
+		member name = 'texchangeidx'
+	list[8] = LF_MEMBER, public, type = T_UCHAR(0020), offset = 94
+		member name = 'tex_shift_idx'
+	list[9] = LF_MEMBER, public, type = T_UCHAR(0020), offset = 95
+		member name = 'extra_byte'
+	list[10] = LF_MEMBER, public, type = T_UINT4(0075), offset = 96
+		member name = 'flags'
+	list[11] = LF_MEMBER, public, type = T_UINT4(0075), offset = 100
+		member name = 'color'
+	list[12] = LF_MEMBER, public, type = T_SHORT(0011), offset = 104
+		member name = 'zmod'
+	list[13] = LF_MEMBER, public, type = T_SHORT(0011), offset = 106
+		member name = 'ambient_add'
+	list[14] = LF_MEMBER, public, type = T_UINT4(0075), offset = 108
+		member name = 'index'
+	list[15] = LF_MEMBER, public, type = 0x613B, offset = 112
+		member name = 'data'
+	list[16] = LF_MEMBER, public, type = 0x3807, offset = 116
+		member name = 'parent'
+	list[17] = LF_MEMBER, public, type = 0x3807, offset = 120
+		member name = 'child'
+	list[18] = LF_MEMBER, public, type = 0x3807, offset = 124
+		member name = 'next'
+
+0x613d : Length = 30, Leaf = 0x1505 LF_STRUCTURE
+	# members = 19,  field list type 0x613c, 
+	Derivation list type 0x0000, VT shape type 0x0000
+	Size = 128, class name = mbnode, UDT(0x0000613d)
+*/
+
+// Hack to get float matrix[4][4];
+struct matrix {
+    float m[4];
+};
+
+struct arg_b {
+    uint a, r, g, b;
+};
+
+typedef int blitinst_ptr;
+typedef int node_ptr;
+typedef int data_ptr;
+
+struct blitinst
+{
+    uint flags;
+    uint tex_idx;
+    short x;
+    short y;
+    uint z;
+    ushort width;
+    ushort height;
+    ushort s_left;
+    ushort s_right;
+    ushort s_top;
+    ushort t_bot;
+    arg_b argb;
+    blitinst_ptr prev;
+    blitinst_ptr next;
+    node_ptr node; 
+};
+
+
+struct sVertInfo {
+    uchar Colour[4];
+    short UV[2];
+    float Point3D[3];
+    char Cull;
+    char IsAFrontFace;
+};
+
+
+// These are pointers!
+struct data {
+    ROMOBJECT obj;
+    polyheader poly;
+    blitinst blit;
+    int psys;
+};
+
+/*
+struct mbnode {
+//  float matrix[4][4];
+    matrix m[4];
+    float scale[4];
+    ushort id;
+    uchar type;
+    uchar alpha;
+    float zsort_add;
+    uint  texaltidx;
+    short texchangeidx;
+    uchar tex_shift_idx;
+    uchar extra_byte;
+    uint flags;
+    uint color;
+    short zmod;
+    short ambient_add;
+    uint index;
+    data_ptr data;
+    node_ptr parent;
+    node_ptr child;
+    node_ptr next;
+};
+*/
+
+//ignore filler;
+//FSeek(156);
+//FSeek(96);
+//objanim obj;
+//shop_item obj;
+
+
+//Objects.ps2
+modelheader hdr;
+
+
+FSeek(hdr.objdefs);
+OBJDEF obj[hdr.objdef_cnt];
+FSeek(hdr.texdefs);
+TEXDEF tex[hdr.texdef_cnt];
+
+FSeek(hdr.romobjs);
+
+ROMOBJECT romObj[hdr.romobj_cnt];
+
+//FSeek(romObj.SubObjPtr);
+//SUBOBJECT subObj;
+
+FSeek(hdr.romtexs);
+ROMTEX romTex[hdr.romtex_cnt];
+
+// RomObj Data stuff!
+
+struct ShortVert {
+    short x,y,z;
+};
+struct CharVert {
+    char x,y,z;
+};  
+struct ShortUV {
+    short u, v;
+};
+struct XYZ3 {
+    int x, y;
+    int64 z;
+};
+
+struct ShortColour {
+    short r : 5;
+    short g : 5;
+    short b : 5;
+    short a : 1;
+};
+
+struct CommandSignal {
+    short constant1;
+    uchar variable;
+    uchar VIFCode;
+};
+
+// 00 80 01 6C = Start of new Patch Data
+struct Signal {
+    uchar Count;
+    uchar Constant; 
+    uchar DataCount; // Number of data types in this set
+    uchar Mode; // 
+};
+
+struct PatchData {
+    Signal StartCommand;
+
+    char nUnkData[4];
+    //int32 VertsInPatch;
+    short nUnkShort3[2];
+    float TwoFloat[2];
+    //short nUnkShort4[2];
+    //Signal VertCommand;
+    //PackedUInt64 verts[VertsInPatch];
+    //CharVert verts[VertsInPatch];
+    //ShortVert verts[VertsInPatch];
+    //ShortVert extraVerts[VertsInPatch];
+    //int endSignal;
+};
+
+struct NodeObjectData {
+    //CommandSignal signal;
+    uint64 UnpackCommand;
+/*
+    short nUnique;
+    uchar nZero;
+    uchar nConstant;
+    //short nPatches;
+    //short nUnkShort;
+    int32 Empty;
+    //PatchData patchData[1] <optimize=false>;
+*/
+};
+
+local int i = 0;
+local int v = 0;
+local uint32 currentPos = 0;
+local uint32 lastPos = 0;
+local uint32 totalSize = 0;
+local short testVal = 0;
+
+local int32 vertCount = 0;
+local int structIndex = 0;
+
+local uint32 endSignal = 0;
+
+// 0 = Vert
+// 1 = UV
+local int32 dataMode = 0;
+local int32 align = 0;
+
+
+// Unpack vars
+local uint32 unpackSize = 0;
+
+// Command vars
+local uint32 dataCount = 0;
+
+// VIF codes
+#define VIF_MSCAL 0x14000000
+#define VIF_MSCNT 0x17000000
+
+#define MODE_SHORT_VERTS 0x69
+#define MODE_CHAR_VERTS 0x6A
+#define MODE_UV 0x6F // Maybe?
+
+
+// test
+
+struct IntMarker {
+    int32 mark;
+};
+struct ShortMarker {
+    short mark;
+};
+struct CharMarker {
+    char mark;
+};
+
+// end test
+
+local uint32 VIFCommand = 0x0;
+
+//
+// Return the required alignment or 0 if none is needed.
+// This is in FSkip positive space. So you can plop it in FSkip.
+//
+uint32 alignmentRequired(uint32 to)
+{
+    local int align = FTell() % to;
+
+    if (align == 0)
+    {
+        return align;
+    }
+    
+    return to - align;
+}
+
+void align(uint32 to)
+{
+    local int align = alignmentRequired(to);
+
+    if (align == 0)
+    {
+        return;
+    }
+
+    Printf("Alignment required. Skipping %d characters at %d.\n", align, FTell());
+    FSkip(align);
+}
+
+
+
+void printMode(uchar mode)
+{
+    switch(mode) {
+        case MODE_SHORT_VERTS:
+            Printf("Int16 Verts:\n");
+            break;
+        case MODE_CHAR_VERTS:
+            Printf("Int8  Verts\n");
+            break;  
+        case MODE_UV:
+            Printf("UV:\n");
+            break;  
+        default:
+            Printf("Unknown character %d\n", mode);
+    }
+}
+
+//for (i = 0; i < hdr.romobj_cnt; i++)//hdr.romobj_cnt; i++)
+{
+    Printf("-------------------\n");
+    i = 1;
+    // Testing yellow arrow
+    //i = 6;
+    // wiz head
+    //i = 15;
+    
+    FSeek(romObj[i].DataPtr);
+
+    if (romObj[i].DataPtr == 0)
+    {
+        Printf("Index: %d, Name: %s, No geometry !\n", i, obj[i].name);
+
+        continue;
+    }
+    
+    vertCount = romObj[i].VertCount;
+
+    currentPos = FTell();
+    lastPos = currentPos;
+    totalSize = 0;
+    
+    
+
+if (1 == 1)
+{
+
+    local int Offset = 2;
+
+    local int test = Offset + 6 + (31 * 0x30 + 0x4f >> 5);
+    test = Offset + 6 + (28 * 0x18 + 0x37 >> 5);
+    
+    FSkip(test);
+    CharMarker hi;
+
+
+
+    //return;
+}
+    FSeek(currentPos);
+    NodeObjectData nodeData;
+    currentPos = FTell();
+    
+
+
+
+
+
+
+
+
+
+
+    unpackSize = nodeData.UnpackCommand << 4;
+
+    Printf("Index: %d, SIndex: %d, Name: %s, VertCount: %d, Unpack Size: %d\n", i, structIndex, obj[i].name, vertCount, unpackSize);//, nodeData.VertsInPatch);
+
+   
+
+    // Kickstart it
+    VIFCommand = VIF_MSCNT;
+    //while(VIFCommand == VIF_MSCNT || VIFCommand == VIF_MSCAL)
+    while(totalSize < unpackSize)
+    {
+        PatchData patchData;
+
+        // I hate this, but we don't know how many of these guys are in the packet
+        while (true)
+        {
+            align(4);
+            Signal Command;
+
+            printMode(Command.Mode);
+            
+            v = 0;
+            dataCount = Command.DataCount;
+
+            
+            // For some reason this only a problem with UVs..
+            // Datacount needs to be a multiple of 4..
+            // Round to the nearest 4 bytes.
+            if (Command.Mode == MODE_UV && dataCount % 2 != 0)
+            {
+                dataCount += 2 - (dataCount % 2);
+            }
+            
+
+            while ( v < dataCount )
+            {
+                
+    
+                if (Command.Mode == MODE_SHORT_VERTS)
+                {
+                    ShortVert verts;
+                    Printf(" ( %d, %d, %d ) ,\n", verts.x, verts.y, verts.z ); 
+                    //FSkip(sizeof(ShortVert));
+                }
+                else if (Command.Mode == MODE_CHAR_VERTS)
+                {
+                    CharVert verts;
+                    Printf(" ( %d, %d, %d ) ,\n", verts.x, verts.y, verts.z ); 
+                    //FSkip(sizeof(CharVert));
+                }   
+                else if (Command.Mode == MODE_UV)
+                {
+                    ShortUV uv;
+                    
+                    //XYZ3 maybeVert;
+                    // 1/32768
+                    Printf(" ( %f, %f ) ,\n", (float)uv.u * 0.000030517578125, (float)uv.v * 0.000030517578125 ); 
+                }
+                    
+
+                v++;
+
+                // Okay, UV's are usually 4 bytes off from a MSCAL or MSCNT...
+                // However I've seen cases where it's 12 bytes! Woah.
+                // We're gonna hackily creep up and check if we've reached the MSCAL/MSCNT
+                if (Command.Mode == MODE_UV && v == dataCount)
+                {   
+                    // First align
+                    align(4);
+
+                    VIFCommand = ReadUInt();
+                    while (VIFCommand != VIF_MSCNT && VIFCommand != VIF_MSCAL)
+                    {
+                        ShortUV bonusUv;
+                        Printf(" ( %f, %f ) ,\n", bonusUv.u * 0.000030517578125, bonusUv.v * 0.000030517578125 ); 
+
+                        VIFCommand = ReadUInt();
+                    }
+
+                }
+            }
+
+            if(Command.Count >= 2) {
+                break;
+            }
+        }
+
+        // Read the next command
+        VIFCommand = ReadUInt();
+
+        if (VIFCommand == VIF_MSCNT)
+        {
+            Printf("MSCNT found. Continue microprogram\n");
+            //align(4);
+        }
+        else if (VIFCommand == VIF_MSCAL)
+        {
+            Printf("MSCAL found. Call microprogram\n");
+        }
+        
+        // Skip past our read.
+        FSkip(4);
+
+        currentPos = FTell();
+        totalSize = currentPos - lastPos;
+
+        
+        
+        // NOLF 1 PS2 was very tightly packed, so check total size of packet. 
+        // If it's close to 16kb then we need to assume there's more data!
+        Printf("Total packet size: %f bytes\n", totalSize);
+/*
+        // Haaaaack
+        if (totalSize < unpackSize)
+        {
+            Printf("Looking for more data..\n");
+            continue;
+        }
+
+        break;
+*/
+    }
+
+    
+
+    structIndex++;
+
+}

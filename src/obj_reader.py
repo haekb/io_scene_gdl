@@ -28,7 +28,6 @@ class ObjectReader(object):
 
         material = Data.materials.new("test")
 
-
         ''' Populate the actual mesh data. '''
         for i in range(model._object_count):
             object_def = model._object_defs[i]
@@ -56,20 +55,17 @@ class ObjectReader(object):
             vertex_list = []
 
             for vertex in model._vertices[i]:
-        
                 new_vertex = vertex._vector
                 
                 vert_tuple = ()
                     
                 # Scale the model down
                 for vert in new_vertex:
+                    # If we've got a bound radius(?), normalize it!
+                    # Otherwise the object will be huge (or small)!
                     if object_def._bnd_rad != 0.0:
                         vert *= (1.0/object_def._bnd_rad)
-                        #vert *= 0.05
-                    #vert *= 0.1
                     vert_tuple += (vert,)
-                    
-                #print(vert_tuple)
                 
                 vertex_list.append(bm.verts.new(vert_tuple))
             # End For
