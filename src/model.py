@@ -140,6 +140,7 @@ class Model(object):
             f.seek(2 * 4, 1)
 
             obj_vertices = []
+            already_has_zero_mag = False
 
             while True: 
                 align(4, f)
@@ -156,7 +157,15 @@ class Model(object):
                     for _ in range(signal._data_count):
                         vertex = Vertex()
                         vertex.read(f, signal._mode)
+
+                        if (vertex._vector.magnitude == 0.0):
+                            continue
+
                         obj_vertices.append(vertex)
+
+                        # Let's try ignoring (0,0,0) after this one!
+                        if (vertex._vector.magnitude == 0.0):
+                            already_has_zero_mag = True
                         
                 elif signal.is_uv():
 

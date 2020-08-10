@@ -10,12 +10,12 @@ class ObjectReader(object):
         model = Model()
         with open(path, 'rb') as f:
             model.read(f)
-            self.importMesh(model)
+            self.import_mesh(model)
             
 
         return model
 
-    def importMesh(self, model):
+    def import_mesh(self, model):
         
         # This seems to be the rage these days
         Context = bpy.context
