@@ -47,7 +47,8 @@ class WorldReader(object):
             our_obj.location = world_object._position
 
             scale_vector = Vector( (1.0, 1.0, 1.0) )
-            scale_vector *= (1.0 / world_object._rad)
+            if world_object._rad != 0.0:
+                scale_vector *= (1.0 / world_object._rad)
 
             our_obj.scale = scale_vector
             
