@@ -139,24 +139,25 @@ class Model(object):
             # VU unpack command
             f.seek(2 * 4, 1)
 
+            obj_vertices = []
+
             while True: 
                 align(4, f)
+
                 print("Reading Signal at %d" % f.tell())
                 signal = Signal()
                 signal.read(f)
                 
+                # Note: Possible colour data if signal.index == 3 
                 print("Signal mode: %s" % signal.get_mode_string())
                 if signal.is_header():
                     f.seek(4 * 4, 1)
                 elif signal.is_vertex():
-                    obj_vertices = []
-
                     for _ in range(signal._data_count):
                         vertex = Vertex()
                         vertex.read(f, signal._mode)
                         obj_vertices.append(vertex)
                         
-                    self._vertices.append(obj_vertices)
                 elif signal.is_uv():
 
                     # For unknown reasons we need to even-ify data count for "uv" items
@@ -177,26 +178,23 @@ class Model(object):
                     break
                 # End If
 
-                # Only go up to 3 signals (zero indexed)
-                #if signal._index >= 2:
-                #    vu_command = VUCommand()
-                #    vu_command.read(f)
-                #
-                #    print("Found VU Command: %s" % vu_command.get_command_string())
-                #    #break
-                # End If
+                '''
+                Still investigating the best way to end an object
+                Currently: Don't go past the next one!
+                '''
 
-                #vu_command = VUCommand()
-                #vu_command.read(f)
-                #print("Found VU Command: %s" % vu_command.get_command_string())
-
-                # Oh...we're the last one? Break for now
-                if len(self._objects) == (obj_index + 1):
-                    break
-
+                # Oh...we're the last one? Make sure we're not past object def!
+                if len(self._objects) == (obj_index+1):
+                    if f.tell() + 20 > (self._object_def_pointer):
+                        break
+                    continue
+                
                 # Look ahead, and see if we're past the next object!
-                if f.tell() + 12 > (self._objects[obj_index+1]._data_pointer):
+                if f.tell() + 20 > (self._objects[obj_index+1]._data_pointer):
                     break
+            # End While
+
+            self._vertices.append(obj_vertices)
 
         end = True
     # End Def
@@ -335,8 +333,12 @@ SIGNAL_MODE_HEADER = 0x6C
 # Vertex
 SIGNAL_MODE_CHAR = 0x6A
 SIGNAL_MODE_SHORT = 0x69
+# Else 12 byte vertex
 # UV?
 SIGNAL_MODE_UV = 0x6F
+# Datamined unknowns
+SIGNAL_MODE_UNK_8BYTE = 0x6D # Possibly level-based
+SIGNAL_MODE_UNK_2BYTE = 0x66
 
 '''
 Vertex data can either be stored in shorts or chars
