@@ -139,6 +139,8 @@ class Model(object):
             # VU unpack command
             f.seek(2 * 4, 1)
 
+            # Total vertices for this object
+            # An object can be split up into multiple "groups" or batches
             obj_vertices = []
             already_has_zero_mag = False
 
@@ -154,6 +156,10 @@ class Model(object):
                 if signal.is_header():
                     f.seek(4 * 4, 1)
                 elif signal.is_vertex():
+
+                    # All the vertices for this particular group
+                    vertex_group = []
+
                     for _ in range(signal._data_count):
                         vertex = Vertex()
                         vertex.read(f, signal._mode)
@@ -161,12 +167,13 @@ class Model(object):
                         if (vertex._vector.magnitude == 0.0):
                             continue
 
-                        obj_vertices.append(vertex)
+                        vertex_group.append(vertex)
 
                         # Let's try ignoring (0,0,0) after this one!
                         if (vertex._vector.magnitude == 0.0):
                             already_has_zero_mag = True
-                        
+                    
+                    obj_vertices.append(vertex_group)
                 elif signal.is_uv():
 
                     # For unknown reasons we need to even-ify data count for "uv" items

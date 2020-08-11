@@ -21,7 +21,7 @@ class ObjectReader(object):
         Context = bpy.context
         Data = bpy.data
         Ops = bpy.ops
-
+        
         collection = Data.collections.new("Objects.ps2")
         # Add our collection to the scene
         Context.scene.collection.children.link(collection)
@@ -54,23 +54,33 @@ class ObjectReader(object):
 
             vertex_list = []
 
-            for vertex in model._vertices[i]:
-                new_vertex = vertex._vector
-                
-                vert_tuple = ()
+            # Ok it got a little confusing, but our vertices are stored in groups
+            # So loop through those groups, and those vertices, 
+            # create them on our mesh, and add them to a new grouped list for face generation!
+            for vertex_group in model._vertices[i]:
+                new_vertex_group = []
+                for vertex in vertex_group:
+                    new_vertex = vertex._vector
                     
-                # Scale the model down
-                for vert in new_vertex:
-                    # If we've got a bound radius(?), normalize it!
-                    # Otherwise the object will be huge (or small)!
-                    if object_def._bnd_rad != 0.0:
-                        vert *= (1.0/object_def._bnd_rad)
-                    vert_tuple += (vert,)
-                
-                vertex_list.append(bm.verts.new(vert_tuple))
+                    vert_tuple = ()
+                        
+                    # Scale the model down
+                    for vert in new_vertex:
+                        # If we've got a bound radius(?), normalize it!
+                        # Otherwise the object will be huge (or small)!
+                        if object_def._bnd_rad != 0.0:
+                            vert *= (1.0/object_def._bnd_rad)
+                        vert_tuple += (vert,)
+                    
+                    new_vertex_group.append(bm.verts.new(vert_tuple))
+                vertex_list.append(new_vertex_group)
             # End For
 
-            faces = self.generate_faces(vertex_list)
+            # Determine face generation via groups
+            faces = []
+            for vertex_group in vertex_list:
+                faces += self.generate_faces(vertex_group)
+            
 
             for vertex_list in faces:
                 # Uncomment to skip face generation
@@ -110,6 +120,9 @@ class ObjectReader(object):
 
             # add it to our collection c:
             collection.objects.link(mesh_object)
+
+            # Hide by default
+            mesh_object.hide_set(1)
         # End For
     # End Def
 
