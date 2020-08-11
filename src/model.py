@@ -133,7 +133,26 @@ class Model(object):
 
         for obj_index, obj in enumerate(self._objects):
             print("------------------------------------------------------")
-            print("Reading Object %s" % self._object_defs[obj_index]._name)
+            print("Reading Object [%d] %s" % (obj_index, self._object_defs[obj_index]._name))
+
+            # Invalid pointer!
+            if obj._data_pointer == 0:
+                print("Invalid object data, skipping!")
+
+                # Hack: Add empty data to our vert array...
+                self._vertices.append([])
+                continue
+
+            # Find the next valid object!
+            # Sometimes object data is just e m p t y.
+            next_obj_index = obj_index + 1
+            for obj_index_test in range(next_obj_index, len(self._objects)):
+                if self._objects[obj_index_test]._data_pointer == 0:
+                    continue
+                next_obj_index = obj_index_test
+                break
+            # End For
+
             f.seek(obj._data_pointer, 0)
 
             # VU unpack command
@@ -142,7 +161,6 @@ class Model(object):
             # Total vertices for this object
             # An object can be split up into multiple "groups" or batches
             obj_vertices = []
-            already_has_zero_mag = False
 
             while True: 
                 align(4, f)
@@ -168,10 +186,6 @@ class Model(object):
                             continue
 
                         vertex_group.append(vertex)
-
-                        # Let's try ignoring (0,0,0) after this one!
-                        if (vertex._vector.magnitude == 0.0):
-                            already_has_zero_mag = True
                     
                     obj_vertices.append(vertex_group)
                 elif signal.is_uv():
@@ -200,13 +214,14 @@ class Model(object):
                 '''
 
                 # Oh...we're the last one? Make sure we're not past object def!
-                if len(self._objects) == (obj_index+1):
+                if len(self._objects) == (next_obj_index):
                     if f.tell() + 20 > (self._object_def_pointer):
                         break
                     continue
                 
                 # Look ahead, and see if we're past the next object!
-                if f.tell() + 20 > (self._objects[obj_index+1]._data_pointer):
+                if f.tell() + 20 > (self._objects[next_obj_index]._data_pointer):
+                    print("Bleeding into the next guys pointer (%d vs %d)! Breaking!" % (f.tell(), self._objects[obj_index+1]._data_pointer))
                     break
             # End While
 
