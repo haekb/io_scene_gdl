@@ -148,6 +148,8 @@ class Model(object):
 
                 # Hack: Add empty data to our vert array...
                 self._vertices.append([])
+                self._skip_vertices.append([])
+                self._uvs.append([])
                 continue
 
             # Find the next valid object!
@@ -218,49 +220,31 @@ class Model(object):
                         header_unk_y = unpack('f', f)[0]
 
                     elif signal.is_vertex():
-
-                        # All the vertices for this particular group
-                        #vertex_group = []
-
                         # Unsure as to why this vertices are -1, but it skips the (0,0,0) padding at the end
                         for _ in range(signal._data_count - 1):
                             vertex = Vertex()
                             vertex.read(f, signal._mode)
-
-                            #if (vertex._vector.magnitude == 0.0):
-                            #    continue
-
                             obj_vertices.append(vertex)
                             
                         if signal._mode == SIGNAL_MODE_CHAR_3:
                             f.seek(3, 1)
                         elif signal._mode == SIGNAL_MODE_SHORT_3:
                             f.seek(6, 1)
-    
-                        #obj_vertices.append(vertex_group)
+                        
                     elif signal.is_uv():
-
-                        # All the uv coordinates for this particular group
-                        #uv_group = []
-
                         for _ in range(signal._data_count):
                             uv = UV()
                             uv.read(f, signal._mode)
 
                             obj_uv.append(uv)
-    
-                        #obj_uv.append(uv_group)
+                        
                     elif signal.is_skip_vertex():
-                        # All the flip verts
-                        #skip_group = []
-
                         for _ in range(signal._data_count):
                             skip = SkipVertex()
                             skip.read(f)
 
                             obj_skip_vertices.append(skip)
-    
-                        #obj_skip_vertices.append(skip_group)
+
                     else:
                         print("Unknown signal! Probably misaligned read..breaking!", signal._mode, f.tell())
                         break
