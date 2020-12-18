@@ -6,6 +6,9 @@ from .utils import align
 Every console port is based off the PS2 version.
 It seems they just "re-built" some of the PS2 sdk functions for Xbox and Gamecube.
 Refer to here for model info: https://psi-rockin.github.io/ps2tek/
+Other Resources:
+http://lukasz.dk/files/PS2Optimisations.pdf
+https://gtamods.com/wiki/Native_Data_PLG_(RW_Section)
 
 This is more of the file format model...it might get moved to an importer...
 '''
@@ -52,7 +55,11 @@ class Model(object):
         self._textures = []
         self._sub_objects = []
 
+        # Not sure what these are, but you should skip the next verts on face gen if >> 7 == 1
+        self._skip_vertices = []
+
         self._vertices = []
+        self._uvs = []
 
     # End Def
 
@@ -123,7 +130,7 @@ class Model(object):
 
         f.seek(self._texture_pointer, 0)
 
-        # Handle objects
+        # Handle textures
         for _ in range(self._texture_count):
             rom_texture = Texture()
             rom_texture.read(f)
@@ -155,77 +162,157 @@ class Model(object):
 
             f.seek(obj._data_pointer, 0)
 
+            # We want to include the next 8 bytes
+            last_position = f.tell()
+
+
             # VU unpack command
-            f.seek(2 * 4, 1)
+            unpack_command = unpack('i', f)[0]
+
+            # Skip two unknown shorts
+            f.seek(1 * 4, 1)
 
             # Total vertices for this object
             # An object can be split up into multiple "groups" or batches
             obj_vertices = []
+            obj_uv = []
+            obj_skip_vertices = []
 
-            while True: 
+            header_unk_x = 0
+            header_unk_y = 0
+
+            prev_header_unk_x = 0
+            prev_header_unk_y = 0
+
+
+            current_position = f.tell()
+            total_size = 0
+
+            # We can get the size of the entire packet by doing this,
+            # We also need to truncate the result to 32-bit!!!
+            unpack_size = (unpack_command << 4) & 0xFFFFFFFF
+
+            while total_size < unpack_size:
+
+                while True: 
+                    align(4, f)
+
+                    print("Reading Signal at %d" % f.tell())
+                    signal = Signal()
+                    signal.read(f)
+
+                    # Note: Possible colour data if signal.index == 3 
+                    print("Signal mode: %s" % signal.get_mode_string())
+                    if signal.is_header():
+
+                        print("Position: ", f.tell())
+
+                        f.seek(4 * 2, 1)
+
+                        # Set the previous directionals
+                        prev_header_unk_x = header_unk_x
+                        prev_header_unk_y = header_unk_y
+
+                        # Not sure, but these might have to do with groupings
+                        header_unk_x = unpack('f', f)[0]
+                        header_unk_y = unpack('f', f)[0]
+
+                    elif signal.is_vertex():
+
+                        # All the vertices for this particular group
+                        #vertex_group = []
+
+                        # Unsure as to why this vertices are -1, but it skips the (0,0,0) padding at the end
+                        for _ in range(signal._data_count - 1):
+                            vertex = Vertex()
+                            vertex.read(f, signal._mode)
+
+                            #if (vertex._vector.magnitude == 0.0):
+                            #    continue
+
+                            obj_vertices.append(vertex)
+                            
+                        if signal._mode == SIGNAL_MODE_CHAR_3:
+                            f.seek(3, 1)
+                        elif signal._mode == SIGNAL_MODE_SHORT_3:
+                            f.seek(6, 1)
+    
+                        #obj_vertices.append(vertex_group)
+                    elif signal.is_uv():
+
+                        # All the uv coordinates for this particular group
+                        #uv_group = []
+
+                        for _ in range(signal._data_count):
+                            uv = UV()
+                            uv.read(f, signal._mode)
+
+                            obj_uv.append(uv)
+    
+                        #obj_uv.append(uv_group)
+                    elif signal.is_skip_vertex():
+                        # All the flip verts
+                        #skip_group = []
+
+                        for _ in range(signal._data_count):
+                            skip = SkipVertex()
+                            skip.read(f)
+
+                            obj_skip_vertices.append(skip)
+    
+                        #obj_skip_vertices.append(skip_group)
+                    else:
+                        print("Unknown signal! Probably misaligned read..breaking!", signal._mode, f.tell())
+                        break
+                    # End If
+
+                    '''
+                    Still investigating the best way to end an object
+                    Currently: Don't go past the next one!
+                    '''
+
+                    print("Checking index: ", signal._index)
+                    # If we hit index 4 (UV map),
+                    # then quit out!
+                    if signal._index >= 4:
+                        break
+
+                    # Oh...we're the last one? Make sure we're not past object def!
+                    # if len(self._objects) == (next_obj_index):
+                    #     if f.tell() + 20 > (self._object_def_pointer):
+                    #         break
+                    #     continue
+                    
+                    # # Look ahead, and see if we're past the next object!
+                    # if f.tell() + 20 > (self._objects[next_obj_index]._data_pointer):
+                    #     print("Bleeding into the next guys pointer (%d vs %d)! Breaking!" % (f.tell(), self._objects[obj_index+1]._data_pointer))
+                    #     break
+                # End While
                 align(4, f)
 
-                print("Reading Signal at %d" % f.tell())
-                signal = Signal()
-                signal.read(f)
+                # Check for VIF commands
+                vif_command = unpack('i', f)[0]
                 
-                # Note: Possible colour data if signal.index == 3 
-                print("Signal mode: %s" % signal.get_mode_string())
-                if signal.is_header():
-                    f.seek(4 * 4, 1)
-                elif signal.is_vertex():
-
-                    # All the vertices for this particular group
-                    vertex_group = []
-
-                    for _ in range(signal._data_count):
-                        vertex = Vertex()
-                        vertex.read(f, signal._mode)
-
-                        if (vertex._vector.magnitude == 0.0):
-                            continue
-
-                        vertex_group.append(vertex)
-                    
-                    obj_vertices.append(vertex_group)
-                elif signal.is_uv():
-
-                    # For unknown reasons we need to even-ify data count for "uv" items
-                    if signal._data_count % 2 != 0:
-                        signal._data_count += 2 - (signal._data_count % 2)
-
-                    f.seek( signal._data_count * 4, 1 )
-
-                    # Also ignore a "bonus" uv
-                    f.seek( 4 , 1)
-
-                    # Should be a VU command after UV
-                    vu_command = VUCommand()
-                    vu_command.read(f)
-                    print("Found VU Command: %s" % vu_command.get_command_string())
+                if vif_command == VIF_MSCAL:
+                    print("MSCAL found. Call microprogram")
+                elif vif_command == VIF_MSCNT:
+                    print("MSCNT found. Continue microprogram")
                 else:
-                    print("Unknown signal! Probably misaligned read..breaking!")
-                    break
-                # End If
+                    print("Unknown VIF command found: ", vif_command)
 
-                '''
-                Still investigating the best way to end an object
-                Currently: Don't go past the next one!
-                '''
+                current_position = f.tell()
+                total_size = current_position - last_position
 
-                # Oh...we're the last one? Make sure we're not past object def!
-                if len(self._objects) == (next_obj_index):
-                    if f.tell() + 20 > (self._object_def_pointer):
-                        break
-                    continue
+                print("Current Total Size/Unpack Size:",total_size, unpack_size)
+
                 
-                # Look ahead, and see if we're past the next object!
-                if f.tell() + 20 > (self._objects[next_obj_index]._data_pointer):
-                    print("Bleeding into the next guys pointer (%d vs %d)! Breaking!" % (f.tell(), self._objects[obj_index+1]._data_pointer))
-                    break
+
             # End While
 
             self._vertices.append(obj_vertices)
+            self._uvs.append(obj_uv)
+            self._skip_vertices.append(obj_skip_vertices)
+        # End For
 
         end = True
     # End Def
@@ -357,19 +444,32 @@ class SubObject(object):
 PS2 related geometry
 Geometry data seems to be formatted for PS2
 '''
+#define VIF_MSCAL 0x14000000
+#define VIF_MSCNT 0x17000000
+VIF_MSCAL = 0x14000000
+VIF_MSCNT = 0x17000000
 
 # Constants for various things
-# Header?
-SIGNAL_MODE_HEADER = 0x6C
-# Vertex
-SIGNAL_MODE_CHAR = 0x6A
-SIGNAL_MODE_SHORT = 0x69
+OBJ_START_SIGNATURE = 0x6C018000
+
 # Else 12 byte vertex
 # UV?
-SIGNAL_MODE_UV = 0x6F
+SIGNAL_MODE_UV = 0x6F # V4-5 - 4 Items packed in 5 bytes
 # Datamined unknowns
-SIGNAL_MODE_UNK_8BYTE = 0x6D # Possibly level-based
-SIGNAL_MODE_UNK_2BYTE = 0x66
+SIGNAL_MODE_UNK_8BYTE = 0x6D # V4-16 (4 items, 16 bytes) # Possibly level-based
+SIGNAL_MODE_UNK_2BYTE = 0x66 # V2-8 (2 items, 8 bytes)
+
+# Confirmed
+# Header?
+SIGNAL_MODE_HEADER = 0x6C # V4-32 (4 items, 32 bytes) (Doesn't quite line up..)
+# Vertex
+SIGNAL_MODE_CHAR_3 = 0x6A
+SIGNAL_MODE_SHORT_3 = 0x69
+# UV
+SIGNAL_MODE_CHAR_2 = 0x66
+SIGNAL_MODE_SHORT_2 = 0x65
+# Flip Vert related
+SIGNAL_MODE_INT_4 = 0x6F
 
 '''
 Vertex data can either be stored in shorts or chars
@@ -381,10 +481,10 @@ class Vertex(object):
         self._z = 0
         self._vector = Vector()
 
-    def read(self, f, mode = SIGNAL_MODE_CHAR):
-        if mode == SIGNAL_MODE_CHAR:
+    def read(self, f, mode = SIGNAL_MODE_CHAR_3):
+        if mode == SIGNAL_MODE_CHAR_3:
             fmt = '3b'
-        elif mode == SIGNAL_MODE_SHORT:
+        elif mode == SIGNAL_MODE_SHORT_3:
             fmt = '3h'
         else: # UNKNOWN!
             fmt = '3b'
@@ -392,14 +492,58 @@ class Vertex(object):
         [ self._x, self._y, self._z ] = unpack(fmt, f)
         self._vector = Vector( ( self._x, self._y, self._z ) )
 
+class UV(object):
+    def __init__(self):
+        self._u = 0.0
+        self._v = 0.0
+        self._vector = Vector()
+
+    def read(self, f, mode = SIGNAL_MODE_CHAR_2):
+        if mode == SIGNAL_MODE_CHAR_2:
+            fmt = '2b'
+            div = 128.0 # Max Char
+        elif mode == SIGNAL_MODE_SHORT_2:
+            fmt = '2h'
+            div = 32768.0 # Max Short
+        else: # UNKNOWN!
+            fmt = '2b'
+            div = 128.0
+        
+        [ self._u, self._v ] = unpack(fmt, f)
+
+        # Process them into floats
+        self._u = float(self._u) / div
+        self._v = float(self._v) / div
+
+        self._vector = Vector( ( self._u, self._v, 0.0 ) )
+
+# This is a hack class
+class SkipVertex(object):
+    def __init__(self):
+        self._byte_1 = 0
+        self._byte_2 = 0
+
+        self._skip = False
+    
+    def read(self, f):
+        [ self._byte_1, self._byte_2 ] = unpack('2B', f)
+
+        self._skip = bool(( self._byte_2 >> 7 ))
+
 class Signal(object):
     def __init__(self):
         self._index = 0
         self._constant = 0
         self._data_count = 0
         self._mode = 0
+
+        self._signature = 0x0
     
     def read(self, f):
+        # Read in the signature, and then reverse, so we can get individual components
+        self._signature = unpack('i', f)[0]
+        f.seek(-4, 1)
+
         self._index = unpack('B', f)[0]
         self._constant = unpack('B', f)[0]
         self._data_count = unpack('B', f)[0]
@@ -412,16 +556,21 @@ class Signal(object):
             return "Vertex"
         elif self.is_uv():
             return "UV"
+        elif self.is_skip_vertex():
+            return "Skip Vertex"
         return "Unknown"
 
     def is_header(self):
         return self._mode in [SIGNAL_MODE_HEADER]
 
     def is_vertex(self):
-        return self._mode in [SIGNAL_MODE_CHAR, SIGNAL_MODE_SHORT]
+        return self._mode in [SIGNAL_MODE_CHAR_3, SIGNAL_MODE_SHORT_3]
     
     def is_uv(self):
-        return self._mode in [SIGNAL_MODE_UV]
+        return self._mode in [SIGNAL_MODE_CHAR_2, SIGNAL_MODE_SHORT_2]
+
+    def is_skip_vertex(self):
+        return self._mode in [SIGNAL_MODE_INT_4]
 
 # Good reference: https://github.com/ps2dev/ps2sdk/blob/8b7579979db87ace4b0aa5693a8a560d15224a96/common/include/vif_codes.h
 class VUCommand(object):
