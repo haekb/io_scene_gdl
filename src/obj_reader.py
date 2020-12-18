@@ -98,12 +98,12 @@ class ObjectReader(object):
         ''' Populate the actual mesh data. '''
         for i in range(model._object_count):
             object_def = model._object_defs[i]
+            flags = ObjectFlag.get_flag_strings(model._objects[i]._flags)
 
             if self._log:
                 print("Setting up object: %s" % object_def._name)
                 print("Object flags: ",flags)
 
-            flags = ObjectFlag.get_flag_strings(model._objects[i]._flags)
 
             ''' Create the object and mesh. '''
             mesh_name = object_def._name
