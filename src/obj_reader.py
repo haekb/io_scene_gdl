@@ -67,10 +67,14 @@ class ObjectFlag(Enum):
 
 class ObjectReader(object):
     def __init__(self):
+        self._log = False
         pass
 
-    def read(self, path):
-        model = Model()
+    def read(self, path, options):
+        # Set options
+        self._log = options._should_log
+
+        model = Model(options)
         with open(path, 'rb') as f:
             model.read(f)
             self.import_mesh(model)
@@ -94,10 +98,12 @@ class ObjectReader(object):
         ''' Populate the actual mesh data. '''
         for i in range(model._object_count):
             object_def = model._object_defs[i]
-            print("Setting up object: %s" % object_def._name)
+
+            if self._log:
+                print("Setting up object: %s" % object_def._name)
+                print("Object flags: ",flags)
 
             flags = ObjectFlag.get_flag_strings(model._objects[i]._flags)
-            print("Object flags: ",flags)
 
             ''' Create the object and mesh. '''
             mesh_name = object_def._name
@@ -122,10 +128,7 @@ class ObjectReader(object):
 
             vertex_list = []
 
-            # TODO: Update comment, we don't use groups anymore!
-            # Ok it got a little confusing, but our vertices are stored in groups
-            # So loop through those groups, and those vertices, 
-            # create them on our mesh, and add them to a new grouped list for face generation!
+            # Loop through our vertex data, scale if needed, and generate some vertices!
             for vertex in model._vertices[i]:
                 new_vertex = vertex._vector
 
@@ -145,26 +148,16 @@ class ObjectReader(object):
                 vertex_list.append(bm.verts.new(vert_tuple))
             # End For
 
-            # Determine face generation via groups
-            faces = []
-            #for vgi, vertex_group in enumerate(vertex_list):
+            # Generate some faces!
             faces = self.generate_faces(vertex_list, model._skip_vertices[i])
-            #for vertex_group in vertex_list:
-            #    faces += self.generate_faces(vertex_group)
 
             # Sanity check
-            print("Generated face count: ", len(faces))
-            if len(faces) != model._objects[i]._triangle_count:
-                print("WARNING: Face count was expected to be ", model._objects[i]._triangle_count, "!!!")
+            if self._log:
+                print("Generated face count: ", len(faces))
+                if len(faces) != model._objects[i]._triangle_count:
+                    print("WARNING: Face count was expected to be ", model._objects[i]._triangle_count, "!!!")
 
             for vertex_list in faces:
-                # Uncomment to skip face generation
-                #continue
-                # ---------------------------------
-
-                #print("Verts", vertex_list)
-                #face = [bm.verts[vertex_offset + vertex.vertex_index] for vertex in face.vertices]
-
                 try:
                     bmface = bm.faces.new(vertex_list)
                 except ValueError:
@@ -172,7 +165,8 @@ class ObjectReader(object):
                     This face is a duplicate of another face, which is disallowed by Blender.
                     Mark this face for deletion after iteration.
                     '''
-                    print("Dupe found!")
+                    if self._log:
+                        print("Dupe found!")
                     #duplicate_face_indices.append(face_index)
                     continue
                 '''
@@ -185,8 +179,6 @@ class ObjectReader(object):
             bm.faces.ensure_lookup_table()
 
             bm.to_mesh(mesh)
-
-            glob_uv_index = 0
 
             uv_texture = mesh.uv_layers[0]
 

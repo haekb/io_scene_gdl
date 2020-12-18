@@ -14,10 +14,12 @@ This is more of the file format model...it might get moved to an importer...
 '''
 
 class Model(object):
-    def __init__(self):
+    def __init__(self, options):
+
+        # Inherit some import options
+        self._log = options._should_log
 
         # Start Header
-
         self._dir_name = ""
         self._version = 0
 
@@ -139,12 +141,14 @@ class Model(object):
         # Let's load some data!
 
         for obj_index, obj in enumerate(self._objects):
-            print("------------------------------------------------------")
-            print("Reading Object [%d] %s" % (obj_index, self._object_defs[obj_index]._name))
+            if self._log:
+                print("------------------------------------------------------")
+                print("Reading Object [%d] %s" % (obj_index, self._object_defs[obj_index]._name))
 
             # Invalid pointer!
             if obj._data_pointer == 0:
-                print("Invalid object data, skipping!")
+                if self._log:
+                    print("Invalid object data, skipping!")
 
                 # Hack: Add empty data to our vert array...
                 self._vertices.append([])
@@ -199,16 +203,15 @@ class Model(object):
                 while True: 
                     align(4, f)
 
-                    print("Reading Signal at %d" % f.tell())
+                    if self._log:
+                        print("Reading Signal at %d" % f.tell())
                     signal = Signal()
                     signal.read(f)
 
                     # Note: Possible colour data if signal.index == 3 
-                    print("Signal mode: %s" % signal.get_mode_string())
+                    if self._log:
+                        print("Signal mode: %s" % signal.get_mode_string())
                     if signal.is_header():
-
-                        print("Position: ", f.tell())
-
                         f.seek(4 * 2, 1)
 
                         # Set the previous directionals
@@ -246,48 +249,34 @@ class Model(object):
                             obj_skip_vertices.append(skip)
 
                     else:
-                        print("Unknown signal! Probably misaligned read..breaking!", signal._mode, f.tell())
+                        if self._log:
+                            print("Unknown signal! Probably misaligned read..breaking!", signal._mode, f.tell())
                         break
                     # End If
 
-                    '''
-                    Still investigating the best way to end an object
-                    Currently: Don't go past the next one!
-                    '''
-
-                    print("Checking index: ", signal._index)
                     # If we hit index 4 (UV map),
                     # then quit out!
                     if signal._index >= 4:
                         break
-
-                    # Oh...we're the last one? Make sure we're not past object def!
-                    # if len(self._objects) == (next_obj_index):
-                    #     if f.tell() + 20 > (self._object_def_pointer):
-                    #         break
-                    #     continue
-                    
-                    # # Look ahead, and see if we're past the next object!
-                    # if f.tell() + 20 > (self._objects[next_obj_index]._data_pointer):
-                    #     print("Bleeding into the next guys pointer (%d vs %d)! Breaking!" % (f.tell(), self._objects[obj_index+1]._data_pointer))
-                    #     break
                 # End While
                 align(4, f)
 
                 # Check for VIF commands
                 vif_command = unpack('i', f)[0]
                 
-                if vif_command == VIF_MSCAL:
-                    print("MSCAL found. Call microprogram")
-                elif vif_command == VIF_MSCNT:
-                    print("MSCNT found. Continue microprogram")
-                else:
-                    print("Unknown VIF command found: ", vif_command)
+                if self._log:
+                    if vif_command == VIF_MSCAL:
+                        print("MSCAL found. Call microprogram")
+                    elif vif_command == VIF_MSCNT:
+                        print("MSCNT found. Continue microprogram")
+                    else:
+                        print("Unknown VIF command found: ", vif_command)
 
                 current_position = f.tell()
                 total_size = current_position - last_position
 
-                print("Current Total Size/Unpack Size:",total_size, unpack_size)
+                if self._log:
+                    print("Current Total Size/Unpack Size:",total_size, unpack_size)
 
                 
 
