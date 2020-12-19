@@ -168,124 +168,143 @@ class Model(object):
 
             f.seek(obj._data_pointer, 0)
 
-            # We want to include the next 8 bytes
-            last_position = f.tell()
-
-
-            # VU unpack command
-            unpack_command = unpack('i', f)[0]
-
-            # Skip two unknown shorts
-            f.seek(1 * 4, 1)
-
+            subobj_count = obj._sub_object_count
+            
             # Total vertices for this object
             # An object can be split up into multiple "groups" or batches
             obj_vertices = []
             obj_uv = []
             obj_skip_vertices = []
 
-            header_unk_x = 0
-            header_unk_y = 0
+            if self._log:
+                print("Found %d objects to unpack", subobj_count)
 
-            prev_header_unk_x = 0
-            prev_header_unk_y = 0
+            # Loop through the number of sub objects
+            # This counter includes the main object!
+            while subobj_count > 0:
+                subobj_count -= 1
 
-
-            current_position = f.tell()
-            total_size = 0
-
-            # We can get the size of the entire packet by doing this,
-            # We also need to truncate the result to 32-bit!!!
-            unpack_size = (unpack_command << 4) & 0xFFFFFFFF
-
-            while total_size < unpack_size:
-
-                while True: 
-                    align(4, f)
-
-                    if self._log:
-                        print("Reading Signal at %d" % f.tell())
-                    signal = Signal()
-                    signal.read(f)
-
-                    # Note: Possible colour data if signal.index == 3 
-                    if self._log:
-                        print("Signal mode: %s" % signal.get_mode_string())
-                    if signal.is_header():
-                        f.seek(4 * 2, 1)
-
-                        # Set the previous directionals
-                        prev_header_unk_x = header_unk_x
-                        prev_header_unk_y = header_unk_y
-
-                        # Not sure, but these might have to do with groupings
-                        header_unk_x = unpack('f', f)[0]
-                        header_unk_y = unpack('f', f)[0]
-
-                    elif signal.is_vertex():
-                        # Unsure as to why this vertices are -1, but it skips the (0,0,0) padding at the end
-                        for _ in range(signal._data_count - 1):
-                            vertex = Vertex()
-                            vertex.read(f, signal._mode)
-                            obj_vertices.append(vertex)
-                            
-                        if signal._mode == SIGNAL_MODE_CHAR_3:
-                            f.seek(3, 1)
-                        elif signal._mode == SIGNAL_MODE_SHORT_3:
-                            f.seek(6, 1)
-                        
-                    elif signal.is_uv():
-                        for _ in range(signal._data_count):
-                            uv = UV()
-                            uv.read(f, signal._mode)
-
-                            obj_uv.append(uv)
-                        
-                    elif signal.is_skip_vertex():
-                        for _ in range(signal._data_count):
-                            skip = SkipVertex()
-                            skip.read(f)
-
-                            obj_skip_vertices.append(skip)
-
-                    else:
-                        if self._log:
-                            print("Unknown signal! Probably misaligned read..breaking!", signal._mode, f.tell())
-                        break
-                    # End If
-
-                    # If we hit index 4 (UV map),
-                    # then quit out!
-                    if signal._index >= 4:
-                        break
-                # End While
-                align(4, f)
-
-                # Check for VIF commands
-                vif_command = unpack('i', f)[0]
-                
                 if self._log:
-                    if vif_command == VIF_MSCAL:
-                        print("MSCAL found. Call microprogram")
-                    elif vif_command == VIF_MSCNT:
-                        print("MSCNT found. Continue microprogram")
-                    else:
-                        print("Unknown VIF command found: ", vif_command)
+                    print("Object %d/%d" % (obj._sub_object_count - subobj_count, obj._sub_object_count))
+
+                # We want to include the next 8 bytes
+                last_position = f.tell()
+
+                # VU unpack command
+                unpack_command = unpack('i', f)[0]
+
+                # Skip two unknown shorts
+                f.seek(1 * 4, 1)
+
+                header_unk_x = 0
+                header_unk_y = 0
+
+                prev_header_unk_x = 0
+                prev_header_unk_y = 0
+
 
                 current_position = f.tell()
-                total_size = current_position - last_position
+                total_size = 0
 
-                if self._log:
-                    print("Current Total Size/Unpack Size:",total_size, unpack_size)
+                # We can get the size of the entire packet by doing this,
+                # We also need to truncate the result to 32-bit!!!
+                unpack_size = (unpack_command << 4) & 0xFFFFFFFF
 
-                
+                if self._log and unpack_size > 10000:
+                    print("WARNING: Unusually large unpack size at ", f.tell())
 
+                # SubObj Count - 1 is how much extra data we have
+                # ---
+                # Once we hit unpack size, check if we'll bleed into another object,
+                # if not, then check if there's a new "unpack_command". 
+                # If there is, mark it as merge with previous then grab that mesh data.
+
+                while total_size < unpack_size:
+
+                    while True: 
+                        align(4, f)
+
+                        if self._log:
+                            print("Reading Signal at %d" % f.tell())
+                        signal = Signal()
+                        signal.read(f)
+
+                        # Note: Possible colour data if signal.index == 3 
+                        if self._log:
+                            print("Signal mode: %s" % signal.get_mode_string())
+                        if signal.is_header():
+                            f.seek(4 * 2, 1)
+
+                            # Set the previous directionals
+                            prev_header_unk_x = header_unk_x
+                            prev_header_unk_y = header_unk_y
+
+                            # Not sure, but these might have to do with groupings
+                            header_unk_x = unpack('f', f)[0]
+                            header_unk_y = unpack('f', f)[0]
+
+                        elif signal.is_vertex():
+                            # Unsure as to why this vertices are -1, but it skips the (0,0,0) padding at the end
+                            for _ in range(signal._data_count - 1):
+                                vertex = Vertex()
+                                vertex.read(f, signal._mode)
+                                obj_vertices.append(vertex)
+                                
+                            if signal._mode == SIGNAL_MODE_CHAR_3:
+                                f.seek(3, 1)
+                            elif signal._mode == SIGNAL_MODE_SHORT_3:
+                                f.seek(6, 1)
+                            
+                        elif signal.is_uv():
+                            for _ in range(signal._data_count):
+                                uv = UV()
+                                uv.read(f, signal._mode)
+
+                                obj_uv.append(uv)
+                            
+                        elif signal.is_skip_vertex():
+                            for _ in range(signal._data_count):
+                                skip = SkipVertex()
+                                skip.read(f)
+
+                                obj_skip_vertices.append(skip)
+
+                        else:
+                            if self._log:
+                                print("Unknown signal! Probably misaligned read..breaking!", signal._mode, f.tell())
+                            break
+                        # End If
+
+                        # If we hit index 4 (UV map),
+                        # then quit out!
+                        if signal._index >= 4:
+                            break
+                    # End While
+                    align(4, f)
+
+                    # Check for VIF commands
+                    vif_command = unpack('i', f)[0]
+                    
+                    if self._log:
+                        if vif_command == VIF_MSCAL:
+                            print("MSCAL found. Call microprogram")
+                        elif vif_command == VIF_MSCNT:
+                            print("MSCNT found. Continue microprogram")
+                        else:
+                            print("Unknown VIF command found: ", vif_command)
+
+                    current_position = f.tell()
+                    total_size = current_position - last_position
+
+                    if self._log:
+                        print("Current Total Size/Unpack Size:",total_size, unpack_size)
+                # End For
+                align(16, f)
             # End While
-
             self._vertices.append(obj_vertices)
             self._uvs.append(obj_uv)
             self._skip_vertices.append(obj_skip_vertices)
-        # End For
+        # End While
 
         end = True
     # End Def
