@@ -17,6 +17,26 @@ class AnimReader(object):
     # End Def
 
     def setup_anim(self, anim):
-        pass
+        for skeleton in anim._skeletons:
 
+            # Link 'em up!
+            for bone in skeleton._data._bones:
+                # Skip root
+                if bone._parent_id == -1:
+                    continue
+
+                bone._parent = skeleton._data._bones[bone._parent_id]
+                skeleton._data._bones[bone._parent_id]._children.append(bone)
+                skeleton._data._bones[bone._parent_id]._child_count += 1
+            # End For
+
+            # Okay make the bind poses relative
+            for bone in skeleton._data._bones:
+                if bone._child_count == 0:
+                    continue
+
+                for child_bone in bone._children:
+                    child_bone._bind_pose = bone._bind_pose @ child_bone._bind_pose
+                # End For
+        # End For
     # End Def

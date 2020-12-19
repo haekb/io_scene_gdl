@@ -6,13 +6,13 @@ class Anim(object):
     def __init__(self):
         # Straight from data
         self._skeleton_count = 0
-        self._unknown_short = 0 # Some sort of flag
+        self._version = 0 # Either 0 or 0x8000
         self._skeleton_data_pointer = 0
-        self._effect_count = 0
+        self._effect_count = 0 # TexMods
         self._effect_pointer = 0
         # Only if unknown_short != 0
-        self._unknown_count = 0
-        self._unknown_pointer = 0
+        self._psys_count = 0
+        self._psys_pointer = 0
 
         # Scratch Space
         self._current_skeleton_position = 0
@@ -23,14 +23,14 @@ class Anim(object):
 
     def read(self, f):
         self._skeleton_count = unpack('H', f)[0]
-        self._unknown_short = unpack('H', f)[0]
+        self._version = unpack('H', f)[0]
         self._skeleton_data_pointer = unpack('I', f)[0]
         self._effect_count = unpack('I', f)[0]
         self._effect_pointer = unpack('I', f)[0]
 
-        if self._unknown_short != 0:
-            self._unknown_count = unpack('I', f)[0]
-            self._unknown_pointer = unpack('I', f)[0]
+        if self._version != 0:
+            self._psys_count = unpack('I', f)[0]
+            self._psys_pointer = unpack('I', f)[0]
         # End If
 
         print(f.tell())
@@ -60,7 +60,7 @@ class Anim(object):
         # End Def
         def read(self, model, f):
             self._name = read_string(f)
-            f.seek(31, - len(self._name), 1)
+            f.seek(31 - len(self._name), 1)
             self._skeleton_data_pointer = unpack('I', f)[0]
         # End Def
 
@@ -111,22 +111,33 @@ class Anim(object):
     class Bone(object):
         def __init__(self):
             self._name = ""
-            self._unk_float = 0.0
             self._location = Vector()
-            self._unk_1 = 0
-            self._unk_2 = 0
-            self._unk_3 = 0
+            self._type = 0
+            self._flags = 0
+            self._mbflags = 0
             self._parent_id = -1
+
+            # Linkage
+            self._parent = None
+            self._children = []
+            self._child_count = 0
+
+            # Transform info
+            self._bind_pose = Matrix()
         # End Def
 
         def read(self, model, f):
-            self._name = f.read(28).decode('ascii')
-            self._unk_float = unpack('f', f)[0]
+            self._name = read_string(f)
+            f.seek(31 - len(self._name), 1)
+            
             self._location = Vector(unpack('3f', f))
-            self._unk_1 = unpack('I', f)[0]
-            self._unk_2 = unpack('I', f)[0]
-            self._unk_3 = unpack('I', f)[0]
+            self._type = unpack('I', f)[0]
+            self._flags = unpack('I', f)[0]
+            self._mbflags = unpack('I', f)[0]
             self._parent_id = unpack('i', f)[0]
+
+            # Set a default bind pose
+            self._bind_pose = Matrix.Translation(self._location)
         # End Def
 
     # End Class

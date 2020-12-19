@@ -68,10 +68,12 @@ class ObjectFlag(Enum):
 class ObjectReader(object):
     def __init__(self):
         self._log = False
+        self._anim = None
         pass
 
     def read(self, path, options):
         # Set options
+        self._anim = options._anim
         self._log = options._should_log
 
         model = Model(options)
@@ -138,8 +140,9 @@ class ObjectReader(object):
                 for vert in new_vertex:
                     # If we've got a bound radius(?), normalize it!
                     # Otherwise the object will be huge (or small)!
-                    if object_def._bnd_rad != 0.0:
-                        vert *= (1.0/object_def._bnd_rad)
+                    #if object_def._bnd_rad != 0.0:
+                    #    vert *= (1.0/object_def._bnd_rad)
+                    vert *= 0.008
                     vert_tuple += (vert,)
 
                 # If we want to swap up to z!
@@ -178,6 +181,26 @@ class ObjectReader(object):
 
             bm.faces.ensure_lookup_table()
 
+            # Hey we have an animation class!
+            if self._anim != None:
+
+                # Apply the bind pose to every nesh
+                for skeleton in self._anim._skeletons:
+                    for bone in skeleton._data._bones:
+                        #print("Checking if %s is in %s" % (bone._name, mesh_name) )
+                        # Check if our bone partial matches the object name
+                        if bone._name in mesh_name:
+                            #print("Found match, applying bind pose")
+                            for v in bm.verts:
+                                v.co = bone._bind_pose @ v.co
+                            # End For
+                            continue
+                        # End If
+                    # End For
+                # End For
+
+            # End If
+
             bm.to_mesh(mesh)
 
             uv_texture = mesh.uv_layers[0]
@@ -188,8 +211,12 @@ class ObjectReader(object):
             # add it to our collection c:
             collection.objects.link(mesh_object)
 
+            
+            
+
+
             # Hide by default
-            mesh_object.hide_set(1)
+            #mesh_object.hide_set(1)
         # End For
     # End Def
 
