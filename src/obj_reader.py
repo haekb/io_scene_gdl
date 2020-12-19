@@ -68,13 +68,15 @@ class ObjectFlag(Enum):
 class ObjectReader(object):
     def __init__(self):
         self._log = False
+        self._hide = False
         self._anim = None
         pass
 
     def read(self, path, options):
         # Set options
         self._anim = options._anim
-        self._log = options._should_log
+        self._log = options._enable_logging
+        self._hide = options._hide_by_default
 
         model = Model(options)
         with open(path, 'rb') as f:
@@ -276,8 +278,9 @@ class ObjectReader(object):
                 # End For
             # End If
 
-            # Hide by default
-            #mesh_object.hide_set(1)
+            if self._hide:
+                # Hide by default
+                mesh_object.hide_set(1)
         # End For
     # End Def
 

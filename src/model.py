@@ -17,7 +17,7 @@ class Model(object):
     def __init__(self, options):
 
         # Inherit some import options
-        self._log = options._should_log
+        self._log = options._enable_logging
 
         # Start Header
         self._dir_name = ""

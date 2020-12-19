@@ -12,8 +12,9 @@ class ImportObjectOptions(object):
         self._anim = None
 
         # Options
-        self._should_log = False
-        self._should_load_anim = True
+        self._enable_logging = False
+        self._hide_by_default = False
+        self._load_anim_file = True
 
 class ImportOperatorObject(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """This appears in the tooltip of the operator and in the generated docs"""
@@ -31,13 +32,19 @@ class ImportOperatorObject(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
 
-    should_log: BoolProperty(
+    enable_logging: BoolProperty(
         name="Enable Logging",
         description="Enables logging during the object import. (This is slow!)",
         default=False,
     )
 
-    should_load_anim: BoolProperty(
+    hide_by_default: BoolProperty(
+        name="Hide Objects On Import",
+        description="Hides the imported objects. Some files can contain hundreds of objects, so this can be handy!",
+        default=False,
+    )
+
+    load_anim_file: BoolProperty(
         name="Load Bones/Animations",
         description="Loads the associated ANIM file which contains bone/animation information.",
         default=True,
@@ -48,20 +55,22 @@ class ImportOperatorObject(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
 
         box = layout.box()
         box.label(text='Animation')
-        box.row().prop(self, 'should_load_anim')
+        box.row().prop(self, 'load_anim_file')
 
         box = layout.box()
         box.label(text='Misc')
-        box.row().prop(self, 'should_log')
+        box.row().prop(self, 'enable_logging')
+        box.row().prop(self, 'hide_by_default')
 
     def execute(self, context):
         print("Loading file %s" % self.filepath)
 
         options = ImportObjectOptions()
-        options._should_log = self.should_log
-        options._should_load_anim = self.should_load_anim
+        options._enable_logging = self.enable_logging
+        options._hide_by_default = self.hide_by_default
+        options._load_anim_file = self.load_anim_file
 
-        if options._should_load_anim:
+        if options._load_anim_file:
             anim_path = self.filepath.replace("OBJECTS.PS2", "ANIM.PS2")
             anim_reader = AnimReader()
             options._anim = anim_reader.read(anim_path)
@@ -93,9 +102,15 @@ class ImportOperatorWorld(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
 
-    should_log: BoolProperty(
+    enable_logging: BoolProperty(
         name="Enable Logging",
         description="Enables logging during the object import. (This is slow!)",
+        default=False,
+    )
+
+    hide_by_default: BoolProperty(
+        name="Hide Objects On Import",
+        description="Hides the imported objects. Some files can contain hundreds of objects, so this can be handy!",
         default=False,
     )
 
@@ -104,7 +119,9 @@ class ImportOperatorWorld(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         box = layout.box()
         box.label(text='Misc')
-        box.row().prop(self, 'should_log')
+        box.row().prop(self, 'enable_logging')
+        box.row().prop(self, 'hide_by_default')
+
 
 
     def execute(self, context):
@@ -114,8 +131,9 @@ class ImportOperatorWorld(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         objectpath = self.filepath.replace("WORLDS.PS2", "OBJECTS.PS2")
 
         options = ImportObjectOptions()
-        options._should_log = self.should_log
-
+        options._enable_logging = self.enable_logging
+        options._hide_by_default = self.hide_by_default
+        
         # Load the model
         model = ObjectReader().read(objectpath, options)
         model.name = os.path.splitext(os.path.basename(objectpath))[0]
