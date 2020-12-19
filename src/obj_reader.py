@@ -97,6 +97,44 @@ class ObjectReader(object):
 
         material = Data.materials.new("test")
 
+        armature_objects = []
+
+        ### BONES
+        if self._anim != None:
+            for skeleton in self._anim._skeletons:
+                # Create the armature
+                armature = bpy.data.armatures.new(skeleton._name)
+                armature_object = bpy.data.objects.new(skeleton._name, armature)
+
+                armature_objects.append(armature_object)
+
+                armature_object.data.display_type = 'STICK'
+                armature_object.show_in_front = True
+
+                collection.objects.link(armature_object)
+                armature_object.select_set(True)
+
+                Context.view_layer.objects.active = armature_object
+                Ops.object.mode_set(mode='EDIT')
+
+                for bone in skeleton._data._bones:
+                    bl_bone = armature.edit_bones.new(bone._name)
+
+                    bl_bone.parent = armature.edit_bones[bone._parent._name] if bone._parent else None
+
+                    # Apply our bind matrix with proper tail and roll.
+                    tail, roll = bpy.types.Bone.AxisRollFromMatrix(bone._bind_pose.to_3x3())
+                    bl_bone.head = bone._bind_pose.to_translation()
+                    bl_bone.tail = tail + bl_bone.head
+                    bl_bone.roll = roll
+                    bl_bone.length = -0.1
+
+                    if bl_bone.parent is not None:
+                        bl_bone.use_connect = bl_bone.parent.tail == bl_bone.head
+                    # End If
+            Ops.object.mode_set(mode='OBJECT')
+        ## END BONES
+
         ''' Populate the actual mesh data. '''
         for i in range(model._object_count):
             object_def = model._object_defs[i]
@@ -183,22 +221,18 @@ class ObjectReader(object):
 
             # Hey we have an animation class!
             if self._anim != None:
-
                 # Apply the bind pose to every nesh
-                for skeleton in self._anim._skeletons:
+                for si, skeleton in enumerate(self._anim._skeletons):
                     for bone in skeleton._data._bones:
-                        #print("Checking if %s is in %s" % (bone._name, mesh_name) )
                         # Check if our bone partial matches the object name
                         if bone._name in mesh_name:
-                            #print("Found match, applying bind pose")
-                            for v in bm.verts:
+                            for vi, v in enumerate(bm.verts):
                                 v.co = bone._bind_pose @ v.co
                             # End For
                             continue
                         # End If
                     # End For
                 # End For
-
             # End If
 
             bm.to_mesh(mesh)
@@ -211,9 +245,31 @@ class ObjectReader(object):
             # add it to our collection c:
             collection.objects.link(mesh_object)
 
-            
-            
+            # Hey we have an animation class!
+            if self._anim != None:
+                # Apply the bind pose to every nesh
+                for si, skeleton in enumerate(self._anim._skeletons):
+                    for bone in skeleton._data._bones:
+                        # Check if our bone partial matches the object name
+                        if bone._name in mesh_name:
+                            armature_modifier = mesh_object.modifiers.new(name='Armature', type='ARMATURE')
+                            armature_modifier.object = armature_objects[si]
+                            mesh_object.parent = armature_objects[si]
 
+                            for vi, v in enumerate(bm.verts):
+                                vertex_group_name = bone._name
+
+                                if mesh_object.vertex_groups.find(vertex_group_name) == -1:
+                                    mesh_object.vertex_groups.new(name=vertex_group_name)
+
+                                vertex_group = mesh_object.vertex_groups[vertex_group_name]
+                                vertex_group.add([vi], 1.0, 'REPLACE')
+                            # End For
+                            continue
+                        # End If
+                    # End For
+                # End For
+            # End If
 
             # Hide by default
             #mesh_object.hide_set(1)
