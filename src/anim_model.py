@@ -33,8 +33,6 @@ class Anim(object):
             self._psys_pointer = unpack('I', f)[0]
         # End If
 
-        print(f.tell())
-
         for _ in range(self._skeleton_count):
             skeleton = self.Skeleton()
             skeleton.read(self, f)
@@ -61,6 +59,7 @@ class Anim(object):
         def read(self, model, f):
             self._name = read_string(f)
             f.seek(31 - len(self._name), 1)
+
             self._skeleton_data_pointer = unpack('I', f)[0]
         # End Def
 
@@ -95,7 +94,9 @@ class Anim(object):
             self._bone_pointer = unpack('I', f)[0]
             self._bone_count = unpack('I', f)[0]
             self._animation_count = unpack('I', f)[0]
-            self._name = f.read(32).decode('ascii')
+
+            self._name = read_string(f)
+            f.seek(31 - len(self._name), 1)
 
             # From here, it's all relative, and boy that's not fun
             f.seek( self._bone_pointer + model._current_skeleton_position, 0 )
@@ -123,7 +124,7 @@ class Anim(object):
             self._child_count = 0
 
             # Transform info
-            self._bind_pose = Matrix()
+            self._bind_matrix = Matrix()
         # End Def
 
         def read(self, model, f):
@@ -137,7 +138,7 @@ class Anim(object):
             self._parent_id = unpack('i', f)[0]
 
             # Set a default bind pose
-            self._bind_pose = Matrix.Translation(self._location)
+            self._bind_matrix = Matrix.Translation(self._location)
         # End Def
 
     # End Class

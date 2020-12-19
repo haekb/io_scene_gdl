@@ -36,7 +36,7 @@ class AnimReader(object):
                     continue
 
                 for child_bone in bone._children:
-                    child_bone._bind_pose = bone._bind_pose @ child_bone._bind_pose
+                    child_bone._bind_matrix = bone._bind_matrix @ child_bone._bind_matrix
                 # End For
         # End For
     # End Def
