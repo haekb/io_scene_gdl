@@ -6,7 +6,7 @@ class Anim(object):
     def __init__(self):
         # Straight from data
         self._skeleton_count = 0
-        self._version = 0 # Either 0 or 0x8000
+        self._version = 0 # Either 0 or 8
         self._skeleton_data_pointer = 0
         self._effect_count = 0 # TexMods
         self._effect_pointer = 0
@@ -110,10 +110,18 @@ class Anim(object):
     # End Class
 
     class Bone(object):
+        # Bone Type
+        BT_EMPTY = 0xFFFFFFFF
+        BT_NULL = 0
+        BT_SKEL_ANIM = 1
+        BT_OBJ_ANIM = 2 # Vertex Animation
+        BT_TEX_ANIM = 3
+        BT_PSYS_ANIM = 4
+
         def __init__(self):
             self._name = ""
             self._location = Vector()
-            self._type = 0
+            self._type = 0 
             self._flags = 0
             self._mbflags = 0
             self._parent_id = -1
