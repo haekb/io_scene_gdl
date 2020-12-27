@@ -27,7 +27,8 @@ class ImportOperatorObject(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
     filename_ext = ".PS2"
 
     filter_glob: StringProperty(
-        default="OBJECTS.PS2",
+        #default="OBJECTS.PS2",
+        default="*.PS2",
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
@@ -97,7 +98,8 @@ class ImportOperatorWorld(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     filename_ext = ".PS2"
 
     filter_glob: StringProperty(
-        default="WORLDS.PS2",
+        #default="WORLDS.PS2",
+        default="*.PS2",
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
