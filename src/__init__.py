@@ -12,22 +12,49 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name" : "io_scene_gdl",
+    "name" : "Gauntlet Dark Legacy format",
     "author" : "HeyJake",
     "description" : "",
     "blender" : (2, 80, 0),
     "version" : (0, 0, 1),
     "location" : "",
     "warning" : "",
-    "category" : "Generic"
+    "category" : "Import-Export"
 }
 
-from . import auto_load
+# For some reason, autoload isn't working with 2.9+ so uhh, do it manually!
+# from . import auto_load
 
-auto_load.init()
+# auto_load.init()
+
+# def register():
+#     auto_load.register()
+
+# def unregister():
+#     auto_load.unregister()
+
+import bpy
+from . import importer
+
+from bpy.utils import register_class, unregister_class
+
+classes = (
+    importer.ImportOperatorObject,
+    importer.ImportOperatorWorld,
+)
 
 def register():
-    auto_load.register()
+    for cls in classes:
+        register_class(cls)
+
+    # Import options
+    bpy.types.TOPBAR_MT_file_import.append(importer.ImportOperatorObject.menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.append(importer.ImportOperatorWorld.menu_func_import)
 
 def unregister():
-    auto_load.unregister()
+    for cls in reversed(classes):
+        unregister_class(cls)
+
+    # Import options
+    bpy.types.TOPBAR_MT_file_import.remove(importer.ImportOperatorObject.menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.remove(importer.ImportOperatorWorld.menu_func_import)
