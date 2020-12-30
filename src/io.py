@@ -25,4 +25,3 @@ def read_string(f):
     #     if c == b'\x00':#chr(0):
     #         return "".join(chars)
     #     chars.append(c)
-    

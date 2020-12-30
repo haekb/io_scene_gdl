@@ -103,10 +103,10 @@ class ObjectReader(object):
 
         # Build out the skeleton
         if self._anim != None:
-            for skeleton in self._anim._skeletons:
+            for skeleton in self._anim.skeletons:
                 # Create the armature
-                armature = bpy.data.armatures.new(skeleton._name)
-                armature_object = bpy.data.objects.new(skeleton._name, armature)
+                armature = bpy.data.armatures.new(skeleton.name)
+                armature_object = bpy.data.objects.new(skeleton.name, armature)
 
                 armature_objects.append(armature_object)
 
@@ -119,14 +119,14 @@ class ObjectReader(object):
                 Context.view_layer.objects.active = armature_object
                 Ops.object.mode_set(mode='EDIT')
 
-                for bone in skeleton._data._bones:
-                    bl_bone = armature.edit_bones.new(bone._name)
+                for bone in skeleton.data.bones:
+                    bl_bone = armature.edit_bones.new(bone.name)
 
-                    bl_bone.parent = armature.edit_bones[bone._parent._name] if bone._parent else None
+                    bl_bone.parent = armature.edit_bones[bone.parent.name] if bone.parent else None
 
                     # Apply our bind matrix with proper tail and roll.
-                    tail, roll = bpy.types.Bone.AxisRollFromMatrix(bone._bind_matrix.to_3x3())
-                    bl_bone.head = bone._bind_matrix.to_translation()
+                    tail, roll = bpy.types.Bone.AxisRollFromMatrix(bone.bind_matrix.to_3x3())
+                    bl_bone.head = bone.bind_matrix.to_translation()
                     bl_bone.tail = tail + bl_bone.head
                     bl_bone.roll = roll
                     bl_bone.length = -0.1
@@ -226,12 +226,12 @@ class ObjectReader(object):
             # We need to apply the bind matrix to our object
             if self._anim != None:
                 # Apply the bind pose to every nesh
-                for si, skeleton in enumerate(self._anim._skeletons):
-                    for bone in skeleton._data._bones:
+                for si, skeleton in enumerate(self._anim.skeletons):
+                    for bone in skeleton.data.bones:
                         # Check if our bone partial matches the object name
-                        if bone._name in mesh_name:
+                        if bone.name in mesh_name:
                             for vi, v in enumerate(bm.verts):
-                                v.co = bone._bind_matrix @ v.co
+                                v.co = bone.bind_matrix @ v.co
                             # End For
                             continue
                         # End If
@@ -252,16 +252,16 @@ class ObjectReader(object):
             # Okay, now we can build vertex groups, these will bind our mesh to the skeleton
             if self._anim != None:
                 # Apply the bind pose to every nesh
-                for si, skeleton in enumerate(self._anim._skeletons):
-                    for bone in skeleton._data._bones:
+                for si, skeleton in enumerate(self._anim.skeletons):
+                    for bone in skeleton.data.bones:
                         # Check if our bone partial matches the object name
-                        if bone._name in mesh_name:
+                        if bone.name in mesh_name:
                             armature_modifier = mesh_object.modifiers.new(name='Armature', type='ARMATURE')
                             armature_modifier.object = armature_objects[si]
                             mesh_object.parent = armature_objects[si]
 
                             for vi, v in enumerate(bm.verts):
-                                vertex_group_name = bone._name
+                                vertex_group_name = bone.name
 
                                 if vertex_group_name == "":
                                     break
