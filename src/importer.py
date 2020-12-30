@@ -72,7 +72,8 @@ class ImportOperatorObject(bpy.types.Operator, bpy_extras.io_utils.ImportHelper)
         options._load_anim_file = self.load_anim_file
 
         if options._load_anim_file:
-            anim_path = self.filepath.replace("OBJECTS.PS2", "ANIM.PS2")
+            anim_path = self.filepath.replace("OBJECTS.PS2", "../ANIM/ANIM.PS2")
+            print("Loading attached animation file %s" % anim_path)
             anim_reader = AnimReader()
             options._anim = anim_reader.read(anim_path)
 
